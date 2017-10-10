@@ -29,11 +29,15 @@ int AXIS_SIZE= 200;
 int axisEnabled= 1;
 
 typedef struct { 
-  char*    name;       /* name */
-  GLfloat position        /* colour */
+  char*    name;
+  GLfloat position;
+  GLfloat velocity;
+  GLfloat acceleration;
  }point;
 
 point testPoint;
+float timeStep = 1;
+float simTime;
 
 ///////////////////////////////////////////////
 
@@ -47,15 +51,20 @@ double myRandom()
 
 void tickPoint(void)
 {
-  if (testPoint.position < 500)
+  simTime += timeStep;
+  //float displacement = (testPoint.velocity * timeStep) + (0.5 * testPoint.acceleration * timeStep * timeStep);
+  float displacement = timeStep * (testPoint.velocity + timeStep * testPoint.acceleration / 2);
+  testPoint.velocity += timeStep * testPoint.acceleration;
+
+  if (testPoint.position < 850)
   {
-    testPoint.position += 20;
-    printf("added 20\n");
+    testPoint.position += displacement;
+    //printf("added distance\n");
   }
-  else
+  //else
   {
-    testPoint.position = 0;
-    printf("zeroed\n");
+    //testPoint.position = 0;
+    //printf("zeroed\n");
   }
 
   glutPostRedisplay();
@@ -64,7 +73,9 @@ void tickPoint(void)
 void initialisePoint()
 {
   testPoint.name = "bob";
-  testPoint.position = 20;
+  testPoint.position = 0;
+  testPoint.velocity = 0.1;
+  testPoint.acceleration = 0.1;
 }
 
 void drawPoint()
@@ -74,7 +85,7 @@ void drawPoint()
   printf("%f\n", testPoint.position);
 
   glBegin (GL_POINTS);
-      glVertex3f (testPoint.position, 0.0, 0.0);
+      glVertex3f (0.0, 0.0, testPoint.position);
   glEnd ();  
 }
 
@@ -136,12 +147,12 @@ void makeAxes() {
       glVertex3f(0.0, 0.0, AXIS_SIZE);
     glEnd();
     glPointSize(5);
-    glBegin (GL_POINTS);
-      glVertex3f (0.0, 100.0, 0.0);
-      glVertex3f (100, 0.0, 0.0);
-      glVertex3f (0.0, -100.0, 0.0);
-      glVertex3f (-100, 0.0, 0.0);
-    glEnd ();
+    //glBegin (GL_POINTS);
+      //glVertex3f (0.0, 100.0, 0.0);
+      //glVertex3f (100, 0.0, 0.0);
+      //glVertex3f (0.0, -100.0, 0.0);
+      //glVertex3f (-100, 0.0, 0.0);
+    //glEnd ();
   glEndList();
 }
 
