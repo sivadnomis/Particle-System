@@ -30,12 +30,22 @@ int axisEnabled= 1;
 
 typedef struct { 
   char*    name;
+  GLfloat  position;
+  int  numParticles;
+ }particleEmitter;
+
+typedef struct { 
+  int    ID;
+  particleEmitter emitter;
   GLfloat position;
   GLfloat velocity;
-  GLfloat acceleration;
+  GLfloat acceleration;  
  }point;
 
-point testPoint;
+particleEmitter testEmitter;
+//point testPoint;
+point particles[10];
+
 float timeStep = 1;
 float simTime;
 
@@ -48,44 +58,66 @@ double myRandom()
 }
 
 ///////////////////////////////////////////////
-
-void tickPoint(void)
+void initialiseEmitter()
 {
-  simTime += timeStep;
-  //float displacement = (testPoint.velocity * timeStep) + (0.5 * testPoint.acceleration * timeStep * timeStep);
-  float displacement = timeStep * (testPoint.velocity + timeStep * testPoint.acceleration / 2);
-  testPoint.velocity += timeStep * testPoint.acceleration;
-
-  if (testPoint.position < 850)
-  {
-    testPoint.position += displacement;
-    //printf("added distance\n");
-  }
-  //else
-  {
-    //testPoint.position = 0;
-    //printf("zeroed\n");
-  }
-
-  glutPostRedisplay();
+  testEmitter.name = "parent";
+  testEmitter.position = 0;
+  testEmitter.numParticles = 0;
+  printf("blah\n");
 }
 
 void initialisePoint()
 {
-  testPoint.name = "bob";
-  testPoint.position = 0;
+  point testPoint;
+  
+  testPoint.emitter = testEmitter;
+  testPoint.ID = testPoint.emitter.numParticles;
+  printf("particle ID: %i\n", testPoint.ID);
+  testPoint.position = testPoint.emitter.position;
   testPoint.velocity = 0.1;
-  testPoint.acceleration = 0.1;
+
+  double random = myRandom();
+  printf("random: %f\n", random);
+  testPoint.acceleration = 0.5 * random;
+  
+  particles[testPoint.emitter.numParticles] = testPoint;
+  testPoint.emitter.numParticles += 1;
+  printf("numoarts is: %i\n", testPoint.emitter.numParticles);
+}
+
+void tickPoint(void)
+{
+  int i = 0;
+
+  for (i; i < sizeof(particles) / sizeof(point); i++)
+  {
+    simTime += timeStep;
+
+    //float displacement = (particles[i].velocity * timeStep) + (0.5 * particles[i].acceleration * timeStep * timeStep);
+    float displacement = timeStep * (particles[i].velocity + timeStep * particles[i].acceleration / 2);
+    particles[i].velocity += timeStep * particles[i].acceleration ;;
+    //printf("displacement: %f\n", displacement);
+    particles[i].position += displacement;
+  }
+
+  glutPostRedisplay();
 }
 
 void drawPoint()
 {
   //printf("lol\n");
   //tickPoint();
-  printf("%f\n", testPoint.position);
+  //printf("%f\n", testPoint.position);
 
   glBegin (GL_POINTS);
-      glVertex3f (0.0, 0.0, testPoint.position);
+      int i = 0;
+      for (i; i < sizeof(particles) / sizeof(point); i++)
+      {
+        //printf("particles size at point %i is: %d\n", i, sizeof(particles) / sizeof(point));
+        //printf("particle[%i] acceleration is: %f\n", i, particles[i].acceleration);
+        glVertex3f (0.0, 0.0, particles[i].position);
+      }
+      //glVertex3f (0.0, 0.0, testPoint.position);
   glEnd ();  
 }
 
@@ -112,8 +144,20 @@ void display()
 
 void keyboard(unsigned char key, int x, int y)
 {
-  if(key == 27) exit(0);
-  glutPostRedisplay();
+  //if(key == 27) exit(0);
+  //glutPostRedisplay();
+
+  switch (key)
+  {
+    case 27:  /* Escape key */
+      exit(0);
+      glutPostRedisplay();
+      break;
+    case 32:
+      initialisePoint();
+      glutPostRedisplay();
+      break;
+  }
 }
 
 ///////////////////////////////////////////////
@@ -168,6 +212,7 @@ void initGraphics(int argc, char *argv[])
   glutKeyboardFunc(keyboard);
   glutReshapeFunc(reshape);
   makeAxes();
+  initialiseEmitter();
   initialisePoint();
 }
 
@@ -185,3 +230,12 @@ int main(int argc, char *argv[])
   glutIdleFunc (tickPoint);
   glutMainLoop();
 }
+
+
+
+
+//generate more particles that start at same position and move at different speeds
+//currently on changing y position, must do for x and z too with repect to gravity
+
+//do the particles need to live inside the emitter? initialisepoint() would then be 
+//run from inside emitter and we wouldn't need the points to keep track of their parent emitter
