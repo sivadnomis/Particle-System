@@ -30,7 +30,9 @@ int axisEnabled= 1;
 
 typedef struct { 
   int    ID;
-  GLfloat position;
+  GLfloat yPosition;
+  GLfloat xPosition;
+  GLfloat zPosition;
   GLfloat velocity;
   GLfloat acceleration;  
 }point;
@@ -39,7 +41,7 @@ typedef struct {
   char*    name;
   GLfloat  position;
   int  numParticles;
-  point particles[100];
+  point particles[1000];
 }particleEmitter;
 
 particleEmitter testEmitter;
@@ -47,6 +49,7 @@ particleEmitter testEmitter;
 
 float timeStep = 1;
 float simTime;
+int currentView;
 
 ///////////////////////////////////////////////
 
@@ -71,11 +74,11 @@ void initialisePoint()
   
   testPoint.ID = testEmitter.numParticles;
   printf("particle ID: %i\n", testPoint.ID);
-  testPoint.position = testEmitter.position;
+  testPoint.yPosition = testEmitter.position;
   testPoint.velocity = 0.1;
 
   double random = myRandom();
-  printf("acceleration modifier: %f\n", random);
+  //printf("acceleration modifier: %f\n", random);
   testPoint.acceleration = 0.5 * random;
   
   testEmitter.particles[testEmitter.numParticles] = testPoint;
@@ -90,11 +93,17 @@ void tickPoint(void)
   {
     simTime += timeStep;
 
-    //float displacement = (testEmitter.particles[i].velocity * timeStep) + (0.5 * testEmitter.particles[i].acceleration * timeStep * timeStep);
-    float displacement = timeStep * (testEmitter.particles[i].velocity + timeStep * testEmitter.particles[i].acceleration / 2);
+    //gravity equation
+    float yDisplacement = timeStep * (testEmitter.particles[i].velocity + timeStep * testEmitter.particles[i].acceleration / 2);
     testEmitter.particles[i].velocity += timeStep * testEmitter.particles[i].acceleration ;;
     //printf("displacement: %f\n", displacement);
-    testEmitter.particles[i].position += displacement;
+    testEmitter.particles[i].yPosition += yDisplacement;
+
+    float xDisplacement = 10;
+    testEmitter.particles[i].xPosition += xDisplacement;
+
+    float zDisplacement = 10;
+    testEmitter.particles[i].zPosition += zDisplacement;
   }
 
   glutPostRedisplay();
@@ -108,10 +117,41 @@ void drawPoint()
       {
         //printf("particles size at point %i is: %d\n", i, sizeof(testEmitter.particles) / sizeof(point));
         //printf("testEmitter.particle[%i] acceleration is: %f\n", i, testEmitter.particles[i].acceleration);
-        glVertex3f (0.0, 0.0, testEmitter.particles[i].position);
+        //printf("i: %i, ID: %ix: %f y: %f\n", i, testEmitter.particles[i].ID, testEmitter.particles[i].xPosition, testEmitter.particles[i].yPosition);
+        glVertex3f (testEmitter.particles[i].xPosition, testEmitter.particles[i].yPosition, testEmitter.particles[i].zPosition);
       }
-      //glVertex3f (0.0, 0.0, testPoint.position);
+      //glVertex3f (0.0, 0.0, testPoint.yPosition);
   glEnd ();  
+}
+
+///////////////////////////////////////////////
+
+void rotateView(void)
+{
+  glMatrixMode(GL_MODELVIEW);
+  glLoadIdentity();
+  switch (currentView) {
+  case 49:
+    gluLookAt(0, 100.0, 1000.0,
+            0.0, 0.0, 0.0,
+            0.0, 1.0, 0.0);
+    break;  
+  case 50:
+    gluLookAt(500, 500.0, 1000.0,
+            0.0, 0.0, 0.0,
+            0.0, 1.0, 0.0);
+    break;
+  default:
+    gluLookAt(0, 100.0, 1000.0,
+            0.0, 0.0, 0.0,
+            0.0, 1.0, 0.0);
+    break;
+  }
+
+  glClear(GL_COLOR_BUFFER_BIT);
+  if(axisEnabled) glCallList(axisList);
+  
+  glutPostRedisplay();
 }
 
 ///////////////////////////////////////////////
@@ -119,7 +159,7 @@ void drawPoint()
 void display()
 {
   glLoadIdentity();
-  gluLookAt(0.0, 100.0, 1000.0,
+  gluLookAt(0, 100.0, 1000.0,
             0.0, 0.0, 0.0,
             0.0, 1.0, 0.0);
   // Clear the screen
@@ -127,7 +167,7 @@ void display()
   // If enabled, draw coordinate axis
   if(axisEnabled) glCallList(axisList);
 
-  
+  rotateView();
   drawPoint();
 
   glutSwapBuffers();
@@ -146,6 +186,12 @@ void keyboard(unsigned char key, int x, int y)
     case 32:
       initialisePoint();
       glutPostRedisplay();
+      break;
+    case 49:
+      currentView = 49;
+      break;
+    case 50:
+      currentView = 50;
       break;
   }
 }
@@ -203,7 +249,7 @@ void initGraphics(int argc, char *argv[])
   glutReshapeFunc(reshape);
   makeAxes();
   initialiseEmitter();
-  initialisePoint();
+  //initialisePoint();
 }
 
 
@@ -216,7 +262,6 @@ int main(int argc, char *argv[])
   initGraphics(argc, argv);
   glutDisplayFunc(display);
   glEnable(GL_POINT_SMOOTH);
-  //glutIdleFunc (drawPoint);
   glutIdleFunc(tickPoint);
   glutMainLoop();
 }
