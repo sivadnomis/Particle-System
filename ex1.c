@@ -47,8 +47,8 @@ typedef struct {
 particleEmitter testEmitter;
 //point testPoint;
 
-float timeStep = 1;
-float simTime;
+int timeStep = 1;
+int simTime;
 int currentView;
 
 ///////////////////////////////////////////////
@@ -96,13 +96,13 @@ void tickPoint(void)
     //gravity equation
     float yDisplacement = timeStep * (testEmitter.particles[i].velocity + timeStep * testEmitter.particles[i].acceleration / 2);
     testEmitter.particles[i].velocity += timeStep * testEmitter.particles[i].acceleration ;;
-    //printf("displacement: %f\n", displacement);
+    //printf("ID: %i, displacement: %f\n", testEmitter.particles[i].ID, yDisplacement);
     testEmitter.particles[i].yPosition += yDisplacement;
 
-    float xDisplacement = 10;
+    float xDisplacement = testEmitter.particles[i].velocity * myRandom();
     testEmitter.particles[i].xPosition += xDisplacement;
 
-    float zDisplacement = 10;
+    float zDisplacement = testEmitter.particles[i].velocity * myRandom();
     testEmitter.particles[i].zPosition += zDisplacement;
   }
 
@@ -141,6 +141,11 @@ void rotateView(void)
             0.0, 0.0, 0.0,
             0.0, 1.0, 0.0);
     break;
+  case 51:
+    gluLookAt(100, 500.0, 0.0,
+            0.0, 0.0, 0.0,
+            0.0, 1.0, 0.0);
+    break;
   default:
     gluLookAt(0, 100.0, 1000.0,
             0.0, 0.0, 0.0,
@@ -150,7 +155,7 @@ void rotateView(void)
 
   glClear(GL_COLOR_BUFFER_BIT);
   if(axisEnabled) glCallList(axisList);
-  
+
   glutPostRedisplay();
 }
 
@@ -192,6 +197,9 @@ void keyboard(unsigned char key, int x, int y)
       break;
     case 50:
       currentView = 50;
+      break;
+    case 51:
+      currentView = 51;
       break;
   }
 }
@@ -249,7 +257,6 @@ void initGraphics(int argc, char *argv[])
   glutReshapeFunc(reshape);
   makeAxes();
   initialiseEmitter();
-  //initialisePoint();
 }
 
 
