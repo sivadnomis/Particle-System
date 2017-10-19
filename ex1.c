@@ -29,22 +29,21 @@ int AXIS_SIZE= 200;
 int axisEnabled= 1;
 
 typedef struct { 
-  char*    name;
-  GLfloat  position;
-  int  numParticles;
- }particleEmitter;
-
-typedef struct { 
   int    ID;
-  particleEmitter emitter;
   GLfloat position;
   GLfloat velocity;
   GLfloat acceleration;  
- }point;
+}point;
+
+typedef struct { 
+  char*    name;
+  GLfloat  position;
+  int  numParticles;
+  point particles[100];
+}particleEmitter;
 
 particleEmitter testEmitter;
 //point testPoint;
-point particles[10];
 
 float timeStep = 1;
 float simTime;
@@ -70,34 +69,32 @@ void initialisePoint()
 {
   point testPoint;
   
-  testPoint.emitter = testEmitter;
-  testPoint.ID = testPoint.emitter.numParticles;
+  testPoint.ID = testEmitter.numParticles;
   printf("particle ID: %i\n", testPoint.ID);
-  testPoint.position = testPoint.emitter.position;
+  testPoint.position = testEmitter.position;
   testPoint.velocity = 0.1;
 
   double random = myRandom();
-  printf("random: %f\n", random);
+  printf("acceleration modifier: %f\n", random);
   testPoint.acceleration = 0.5 * random;
   
-  particles[testPoint.emitter.numParticles] = testPoint;
-  testPoint.emitter.numParticles += 1;
-  printf("numoarts is: %i\n", testPoint.emitter.numParticles);
+  testEmitter.particles[testEmitter.numParticles] = testPoint;
+  testEmitter.numParticles += 1;
 }
 
 void tickPoint(void)
 {
   int i = 0;
 
-  for (i; i < sizeof(particles) / sizeof(point); i++)
+  for (i; i < sizeof(testEmitter.particles) / sizeof(point); i++)
   {
     simTime += timeStep;
 
-    //float displacement = (particles[i].velocity * timeStep) + (0.5 * particles[i].acceleration * timeStep * timeStep);
-    float displacement = timeStep * (particles[i].velocity + timeStep * particles[i].acceleration / 2);
-    particles[i].velocity += timeStep * particles[i].acceleration ;;
+    //float displacement = (testEmitter.particles[i].velocity * timeStep) + (0.5 * testEmitter.particles[i].acceleration * timeStep * timeStep);
+    float displacement = timeStep * (testEmitter.particles[i].velocity + timeStep * testEmitter.particles[i].acceleration / 2);
+    testEmitter.particles[i].velocity += timeStep * testEmitter.particles[i].acceleration ;;
     //printf("displacement: %f\n", displacement);
-    particles[i].position += displacement;
+    testEmitter.particles[i].position += displacement;
   }
 
   glutPostRedisplay();
@@ -105,17 +102,13 @@ void tickPoint(void)
 
 void drawPoint()
 {
-  //printf("lol\n");
-  //tickPoint();
-  //printf("%f\n", testPoint.position);
-
   glBegin (GL_POINTS);
       int i = 0;
-      for (i; i < sizeof(particles) / sizeof(point); i++)
+      for (i; i < sizeof(testEmitter.particles) / sizeof(point); i++)
       {
-        //printf("particles size at point %i is: %d\n", i, sizeof(particles) / sizeof(point));
-        //printf("particle[%i] acceleration is: %f\n", i, particles[i].acceleration);
-        glVertex3f (0.0, 0.0, particles[i].position);
+        //printf("particles size at point %i is: %d\n", i, sizeof(testEmitter.particles) / sizeof(point));
+        //printf("testEmitter.particle[%i] acceleration is: %f\n", i, testEmitter.particles[i].acceleration);
+        glVertex3f (0.0, 0.0, testEmitter.particles[i].position);
       }
       //glVertex3f (0.0, 0.0, testPoint.position);
   glEnd ();  
@@ -144,9 +137,6 @@ void display()
 
 void keyboard(unsigned char key, int x, int y)
 {
-  //if(key == 27) exit(0);
-  //glutPostRedisplay();
-
   switch (key)
   {
     case 27:  /* Escape key */
@@ -227,7 +217,7 @@ int main(int argc, char *argv[])
   glutDisplayFunc(display);
   glEnable(GL_POINT_SMOOTH);
   //glutIdleFunc (drawPoint);
-  glutIdleFunc (tickPoint);
+  glutIdleFunc(tickPoint);
   glutMainLoop();
 }
 
