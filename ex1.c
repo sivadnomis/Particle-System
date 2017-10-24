@@ -22,6 +22,8 @@
   #include <GL/glut.h>
 #endif
 
+////////////////////////////////////////////////////////////////
+
 // Display list for coordinate axis 
 GLuint axisList;
 
@@ -39,9 +41,10 @@ typedef struct {
 
 typedef struct { 
   char*    name;
-  GLfloat  position;
+  GLfloat  yPosition;
+  GLfloat  xPosition;
   int  numParticles;
-  point particles[1000];
+  point particles[10000];
 }particleEmitter;
 
 particleEmitter testEmitter;
@@ -60,12 +63,34 @@ double myRandom()
 }
 
 ///////////////////////////////////////////////
-void initialiseEmitter()
+
+double myRandomInclNeg()
+//Return random double within range [0,1]
+{
+  return (rand()/(double)RAND_MAX) * 2 - 1;
+}
+
+///////////////////////////////////////////////
+void initialiseEmitter(int yPos)
 {
   testEmitter.name = "parent";
-  testEmitter.position = 0;
+  testEmitter.yPosition = yPos;
   testEmitter.numParticles = 0;
-  printf("blah\n");
+  //printf("blah\n");
+}
+
+void tickEmitter(void)
+{
+  simTime += timeStep;
+  // if (simTime % 20 == 0)
+  {
+    //testEmitter.xPosition = 100 * cos(simTime) + testEmitter.xPosition;
+    //estEmitter.yPosition = 100 * sin(simTime) + testEmitter.yPosition;
+  }
+
+  //printf("emitter yPosition: %f\n", testEmitter.yPosition);
+  initialisePoint();
+  tickPoint();
 }
 
 void initialisePoint()
@@ -74,7 +99,8 @@ void initialisePoint()
   
   testPoint.ID = testEmitter.numParticles;
   printf("particle ID: %i\n", testPoint.ID);
-  testPoint.yPosition = testEmitter.position;
+  testPoint.yPosition = testEmitter.yPosition;
+  testPoint.xPosition = testEmitter.xPosition;
   testPoint.velocity = 0.1;
 
   double random = myRandom();
@@ -88,21 +114,18 @@ void initialisePoint()
 void tickPoint(void)
 {
   int i = 0;
-
-  for (i; i < sizeof(testEmitter.particles) / sizeof(point); i++)
+  for (; i < sizeof(testEmitter.particles) / sizeof(point); i++)
   {
-    simTime += timeStep;
-
     //gravity equation
     float yDisplacement = timeStep * (testEmitter.particles[i].velocity + timeStep * testEmitter.particles[i].acceleration / 2);
     testEmitter.particles[i].velocity += timeStep * testEmitter.particles[i].acceleration ;;
     //printf("ID: %i, displacement: %f\n", testEmitter.particles[i].ID, yDisplacement);
-    testEmitter.particles[i].yPosition += yDisplacement;
+    testEmitter.particles[i].yPosition -= yDisplacement;
 
-    float xDisplacement = testEmitter.particles[i].velocity * myRandom();
+    float xDisplacement = testEmitter.particles[i].velocity * myRandomInclNeg();
     testEmitter.particles[i].xPosition += xDisplacement;
 
-    float zDisplacement = testEmitter.particles[i].velocity * myRandom();
+    float zDisplacement = testEmitter.particles[i].velocity * myRandomInclNeg();
     testEmitter.particles[i].zPosition += zDisplacement;
   }
 
@@ -111,9 +134,17 @@ void tickPoint(void)
 
 void drawPoint()
 {
+  // enable blending
+  glEnable(GL_BLEND);
+  glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+   
+  // enable point smoothing
+  glEnable(GL_POINT_SMOOTH);
+  glPointSize(5.0f);
+
   glBegin (GL_POINTS);
       int i = 0;
-      for (i; i < sizeof(testEmitter.particles) / sizeof(point); i++)
+      for (; i < sizeof(testEmitter.particles) / sizeof(point); i++)
       {
         //printf("particles size at point %i is: %d\n", i, sizeof(testEmitter.particles) / sizeof(point));
         //printf("testEmitter.particle[%i] acceleration is: %f\n", i, testEmitter.particles[i].acceleration);
@@ -256,7 +287,7 @@ void initGraphics(int argc, char *argv[])
   glutKeyboardFunc(keyboard);
   glutReshapeFunc(reshape);
   makeAxes();
-  initialiseEmitter();
+  initialiseEmitter(500);
 }
 
 
@@ -269,15 +300,13 @@ int main(int argc, char *argv[])
   initGraphics(argc, argv);
   glutDisplayFunc(display);
   glEnable(GL_POINT_SMOOTH);
-  glutIdleFunc(tickPoint);
+  glutIdleFunc(tickEmitter); 
+  //glutIdleFunc(tickPoint);
   glutMainLoop();
 }
 
 
 
 
-//generate more particles that start at same position and move at different speeds
-//currently on changing y position, must do for x and z too with repect to gravity
-
-//do the particles need to live inside the emitter? initialisepoint() would then be 
-//run from inside emitter and we wouldn't need the points to keep track of their parent emitter
+//multiple emmiters to create rain#
+//a floor for rain to bounce off/slide
