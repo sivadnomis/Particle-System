@@ -22,6 +22,8 @@
   #include <GL/glut.h>
 #endif
 
+void tickPoint(int emitterID);
+void initialisePoint(int emitterID);
 ////////////////////////////////////////////////////////////////
 
 // Display list for coordinate axis 
@@ -35,23 +37,34 @@ typedef struct {
   GLfloat yPosition;
   GLfloat xPosition;
   GLfloat zPosition;
+
   GLfloat velocity;
   GLfloat acceleration;  
+
+  GLfloat xGroundDirection;
+  GLfloat zGroundDirection;
+
+  GLfloat rColor;
+  GLfloat gColor;
+  GLfloat bColor;
 }point;
 
 typedef struct { 
-  char*    name;
+  int ID;
   GLfloat  yPosition;
   GLfloat  xPosition;
+  GLfloat  zPosition;
+
   int  numParticles;
   point particles[10000];
 }particleEmitter;
 
-particleEmitter testEmitter;
-//point testPoint;
+particleEmitter emitters[10];
+int numEmitters = 0;
 
 int timeStep = 1;
 int simTime;
+
 int currentView;
 
 ///////////////////////////////////////////////
@@ -71,62 +84,122 @@ double myRandomInclNeg()
 }
 
 ///////////////////////////////////////////////
-void initialiseEmitter(int yPos)
+void initialiseEmitter(int xPos, int yPos, int zPos)
 {
-  testEmitter.name = "parent";
+  particleEmitter testEmitter;
+  testEmitter.ID = numEmitters;
+
+  testEmitter.xPosition = xPos;
   testEmitter.yPosition = yPos;
+  testEmitter.zPosition = zPos;
+
   testEmitter.numParticles = 0;
-  //printf("blah\n");
+
+  emitters[numEmitters] = testEmitter;
+  numEmitters += 1;
 }
 
 void tickEmitter(void)
 {
   simTime += timeStep;
-  // if (simTime % 20 == 0)
+  int i = 0;
+  for (; i < numEmitters; i++)
   {
-    //testEmitter.xPosition = 100 * cos(simTime) + testEmitter.xPosition;
-    //estEmitter.yPosition = 100 * sin(simTime) + testEmitter.yPosition;
-  }
+    if (simTime % 20 == 0)
+    {      
+      emitters[i].xPosition = 100 * cos(simTime) + emitters[i].xPosition;
+      emitters[i].yPosition = 100 * sin(simTime) + emitters[i].yPosition;
+    }
 
-  //printf("emitter yPosition: %f\n", testEmitter.yPosition);
-  initialisePoint();
-  tickPoint();
+    initialisePoint(i);
+    tickPoint(i);
+  }
 }
 
-void initialisePoint()
+void initialisePoint(int emitterID)
 {
   point testPoint;
   
-  testPoint.ID = testEmitter.numParticles;
+  testPoint.ID = emitters[emitterID].numParticles;
   printf("particle ID: %i\n", testPoint.ID);
-  testPoint.yPosition = testEmitter.yPosition;
-  testPoint.xPosition = testEmitter.xPosition;
-  testPoint.velocity = 0.1;
 
+  testPoint.xPosition = emitters[emitterID].xPosition;
+  testPoint.yPosition = emitters[emitterID].yPosition;  
+  testPoint.zPosition = emitters[emitterID].zPosition;
+
+  testPoint.velocity = 0.1;
   double random = myRandom();
-  //printf("acceleration modifier: %f\n", random);
   testPoint.acceleration = 0.5 * random;
+
+  testPoint.xGroundDirection = 0;
+  testPoint.zGroundDirection = 0;
+
+  testPoint.rColor = myRandom();
+  testPoint.gColor = myRandom();
+  testPoint.bColor = myRandom();
   
-  testEmitter.particles[testEmitter.numParticles] = testPoint;
-  testEmitter.numParticles += 1;
+  emitters[emitterID].particles[emitters[emitterID].numParticles] = testPoint;
+  emitters[emitterID].numParticles += 1;
 }
 
-void tickPoint(void)
+float distanceFromOrigin(float xPosition, float zPosition)
+{
+  return sqrt(pow(xPosition, 2) + pow(zPosition, 2));
+}
+
+void tickPoint(int emitterID)
 {
   int i = 0;
-  for (; i < sizeof(testEmitter.particles) / sizeof(point); i++)
+  for (; i < sizeof(emitters[emitterID].particles) / sizeof(point); i++)
   {
     //gravity equation
-    float yDisplacement = timeStep * (testEmitter.particles[i].velocity + timeStep * testEmitter.particles[i].acceleration / 2);
-    testEmitter.particles[i].velocity += timeStep * testEmitter.particles[i].acceleration ;;
-    //printf("ID: %i, displacement: %f\n", testEmitter.particles[i].ID, yDisplacement);
-    testEmitter.particles[i].yPosition -= yDisplacement;
+    float yDisplacement = timeStep * (emitters[emitterID].particles[i].velocity + timeStep * emitters[emitterID].particles[i].acceleration / 2);
+    emitters[emitterID].particles[i].velocity += timeStep * emitters[emitterID].particles[i].acceleration ;;
+    //printf("ID: %i, displacement: %f\n", emitters[emitterID].particles[i].ID, yDisplacement);
+    
+    if (emitters[emitterID].particles[i].yPosition - yDisplacement > -500)
+    {
+      emitters[emitterID].particles[i].yPosition -= yDisplacement;
 
-    float xDisplacement = testEmitter.particles[i].velocity * myRandomInclNeg();
-    testEmitter.particles[i].xPosition += xDisplacement;
+      float xDisplacement = emitters[emitterID].particles[i].velocity * myRandomInclNeg();
+      emitters[emitterID].particles[i].xPosition += xDisplacement;
 
-    float zDisplacement = testEmitter.particles[i].velocity * myRandomInclNeg();
-    testEmitter.particles[i].zPosition += zDisplacement;
+      float zDisplacement = emitters[emitterID].particles[i].velocity * myRandomInclNeg();
+      emitters[emitterID].particles[i].zPosition += zDisplacement;
+    }
+    else
+    {
+      emitters[emitterID].particles[i].yPosition -= log(distanceFromOrigin(emitters[emitterID].particles[i].xPosition, emitters[emitterID].particles[i].zPosition) / 1000);
+      if (emitters[emitterID].particles[i].xGroundDirection == 0 && emitters[emitterID].particles[i].zGroundDirection == 0)
+      {
+        emitters[emitterID].particles[i].xGroundDirection = myRandom();
+        emitters[emitterID].particles[i].zGroundDirection = myRandom();
+      }
+      else
+      {
+        if (emitters[emitterID].particles[i].xPosition > 0)
+        {
+          emitters[emitterID].particles[i].xPosition += emitters[emitterID].particles[i].xGroundDirection;
+        }
+        else
+        {
+          emitters[emitterID].particles[i].xPosition -= emitters[emitterID].particles[i].xGroundDirection;
+        }
+        
+        if (emitters[emitterID].particles[i].zPosition > 0)
+        {
+          emitters[emitterID].particles[i].zPosition += emitters[emitterID].particles[i].zGroundDirection;
+        }
+        else
+        {
+          emitters[emitterID].particles[i].zPosition -= emitters[emitterID].particles[i].zGroundDirection;
+        }
+      }
+
+    }
+
+
+    
   }
 
   glutPostRedisplay();
@@ -140,16 +213,21 @@ void drawPoint()
    
   // enable point smoothing
   glEnable(GL_POINT_SMOOTH);
-  glPointSize(5.0f);
-
+  glPointSize(3.0f);
+  
   glBegin (GL_POINTS);
-      int i = 0;
-      for (; i < sizeof(testEmitter.particles) / sizeof(point); i++)
+      int h = 0;
+      for (; h < numEmitters; h++)
       {
-        //printf("particles size at point %i is: %d\n", i, sizeof(testEmitter.particles) / sizeof(point));
-        //printf("testEmitter.particle[%i] acceleration is: %f\n", i, testEmitter.particles[i].acceleration);
-        //printf("i: %i, ID: %ix: %f y: %f\n", i, testEmitter.particles[i].ID, testEmitter.particles[i].xPosition, testEmitter.particles[i].yPosition);
-        glVertex3f (testEmitter.particles[i].xPosition, testEmitter.particles[i].yPosition, testEmitter.particles[i].zPosition);
+        int i = 0;
+        for (; i < sizeof(emitters[h].particles) / sizeof(point); i++)
+        {
+          //printf("particles size at point %i is: %d\n", i, sizeof(emitters[i].particles) / sizeof(point));
+          //printf("emitters[i].particle[%i] acceleration is: %f\n", i, emitters[i].particles[i].acceleration);
+          //printf("i: %i, ID: %ix: %f y: %f\n", i, emitters[i].particles[i].ID, emitters[i].particles[i].xPosition, emitters[i].particles[i].yPosition);
+          glColor3f(emitters[h].particles[i].rColor, emitters[h].particles[i].gColor, emitters[h].particles[i].bColor);
+          glVertex3f (emitters[h].particles[i].xPosition, emitters[h].particles[i].yPosition, emitters[h].particles[i].zPosition);
+        }
       }
       //glVertex3f (0.0, 0.0, testPoint.yPosition);
   glEnd ();  
@@ -163,23 +241,23 @@ void rotateView(void)
   glLoadIdentity();
   switch (currentView) {
   case 49:
-    gluLookAt(0, 100.0, 1000.0,
-            0.0, 0.0, 0.0,
+    gluLookAt(0, 100.0, 2000.0,
+            0.0, -200.0, 0.0,
             0.0, 1.0, 0.0);
     break;  
   case 50:
-    gluLookAt(500, 500.0, 1000.0,
-            0.0, 0.0, 0.0,
+    gluLookAt(800, 500.0, 1500.0,
+            0.0, -200.0, 0.0,
             0.0, 1.0, 0.0);
     break;
   case 51:
-    gluLookAt(100, 500.0, 0.0,
+    gluLookAt(1, 1500.0, 0.0,
             0.0, 0.0, 0.0,
             0.0, 1.0, 0.0);
     break;
   default:
-    gluLookAt(0, 100.0, 1000.0,
-            0.0, 0.0, 0.0,
+    gluLookAt(0, 100.0, 2000.0,
+            0.0, -200, 0.0,
             0.0, 1.0, 0.0);
     break;
   }
@@ -195,11 +273,13 @@ void rotateView(void)
 void display()
 {
   glLoadIdentity();
-  gluLookAt(0, 100.0, 1000.0,
-            0.0, 0.0, 0.0,
+  gluLookAt(0, 100.0, 2000.0,
+            0.0, -200.0, 0.0,
             0.0, 1.0, 0.0);
   // Clear the screen
   glClear(GL_COLOR_BUFFER_BIT);
+  //Colour of background
+  glClearColor(0.0, 0.0, 0.0, 0.0);
   // If enabled, draw coordinate axis
   if(axisEnabled) glCallList(axisList);
 
@@ -220,7 +300,7 @@ void keyboard(unsigned char key, int x, int y)
       glutPostRedisplay();
       break;
     case 32:
-      initialisePoint();
+      initialisePoint(0);
       glutPostRedisplay();
       break;
     case 49:
@@ -283,11 +363,15 @@ void initGraphics(int argc, char *argv[])
   glutInitWindowPosition(100, 100);
   glutInitDisplayMode(GLUT_DOUBLE);
   glutCreateWindow("COMP37111 Particles");
+
   
   glutKeyboardFunc(keyboard);
   glutReshapeFunc(reshape);
   makeAxes();
-  initialiseEmitter(500);
+  initialiseEmitter(100, 500, 0);
+  initialiseEmitter(-100, 500, 0);
+  initialiseEmitter(0, 500, 100);
+  initialiseEmitter(0, 500, -100);
 }
 
 
@@ -304,9 +388,3 @@ int main(int argc, char *argv[])
   //glutIdleFunc(tickPoint);
   glutMainLoop();
 }
-
-
-
-
-//multiple emmiters to create rain#
-//a floor for rain to bounce off/slide
