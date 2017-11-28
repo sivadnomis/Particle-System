@@ -67,6 +67,8 @@ int simTime;
 
 int currentView;
 
+float gravityModifier = 1;
+
 ///////////////////////////////////////////////
 
 double myRandom()
@@ -154,6 +156,7 @@ void tickPoint(int emitterID)
   {
     //gravity equation
     float yDisplacement = timeStep * (emitters[emitterID].particles[i].velocity + timeStep * emitters[emitterID].particles[i].acceleration / 2);
+    yDisplacement *= gravityModifier;
     emitters[emitterID].particles[i].velocity += timeStep * emitters[emitterID].particles[i].acceleration ;;
     //printf("ID: %i, displacement: %f\n", emitters[emitterID].particles[i].ID, yDisplacement);
     
@@ -286,6 +289,7 @@ void display()
   rotateView();
   drawPoint();
 
+
   glutSwapBuffers();
 }
 
@@ -300,7 +304,9 @@ void keyboard(unsigned char key, int x, int y)
       glutPostRedisplay();
       break;
     case 32:
-      initialisePoint(0);
+      tickEmitter();
+      tickEmitter();
+      //initialisePoint(0);
       glutPostRedisplay();
       break;
     case 49:
@@ -374,7 +380,21 @@ void initGraphics(int argc, char *argv[])
   initialiseEmitter(0, 500, -100);
 }
 
+void change_simulation(int item)
+{ /* Callback called when the user clicks the right mouse button */
+  printf ("Change simulation: you clicked item %d\n", item);
 
+  switch (item)
+  {
+    case 1:  /* Escape key */
+      gravityModifier += 0.5;
+      break;
+    case 2:
+      gravityModifier -= 0.5;
+      break;
+  }
+  
+}
 /////////////////////////////////////////////////
 
 int main(int argc, char *argv[])
@@ -386,5 +406,14 @@ int main(int argc, char *argv[])
   glEnable(GL_POINT_SMOOTH);
   glutIdleFunc(tickEmitter); 
   //glutIdleFunc(tickPoint);
+
+  glutCreateMenu(change_simulation); /* Create the first menu & add items */
+  glutAddMenuEntry("Increase gravity", 1);
+  glutAddMenuEntry("Decrease gravity", 2);
+  glutAttachMenu(GLUT_RIGHT_BUTTON); /* Attach it to the right button */
+
   glutMainLoop();
 }
+
+//move the camera around (priority)
+//get some cool shading effects on the particles
