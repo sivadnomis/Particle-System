@@ -56,7 +56,7 @@ typedef struct {
   GLfloat  zPosition;
 
   int  numParticles;
-  point particles[10000];
+  point particles[20000];
 }particleEmitter;
 
 enum colour 
@@ -65,6 +65,13 @@ enum colour
   RED = 1, 
   BLUE = 2,
   GREEN = 3
+};
+
+enum render_types 
+{
+  POINTS = 0, 
+  QUADS = 1, 
+  LINES = 2,
 };
 
 particleEmitter emitters[10];
@@ -76,7 +83,9 @@ int simTime;
 int currentView;
 
 float gravityModifier = 1;
+float velocityModifier = 1;
 int particles_colour = 0;
+int render_mode = 0;
 
 ///////////////////////////////////////////////
 
@@ -187,6 +196,7 @@ void tickPoint(int emitterID)
     float yDisplacement = timeStep * (emitters[emitterID].particles[i].velocity + timeStep * emitters[emitterID].particles[i].acceleration / 2);
     yDisplacement *= gravityModifier;
     emitters[emitterID].particles[i].velocity += timeStep * emitters[emitterID].particles[i].acceleration ;;
+    emitters[emitterID].particles[i].velocity *= velocityModifier;
     //printf("ID: %i, displacement: %f\n", emitters[emitterID].particles[i].ID, yDisplacement);
     
     if (emitters[emitterID].particles[i].yPosition - yDisplacement > -500)
@@ -242,27 +252,66 @@ void drawPoint()
   // enable blending
   glEnable(GL_BLEND);
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-   
-  // enable point smoothing
-  glEnable(GL_POINT_SMOOTH);
-  glPointSize(3.0f);
-  
-  glBegin (GL_POINTS);
-      int h = 0;
-      for (; h < numEmitters; h++)
+
+  switch (render_mode)
+  {
+    case POINTS:  /* Escape key */
+      // enable point smoothing
+      glEnable(GL_POINT_SMOOTH);
+      glPointSize(3.0f);
+      
+      glBegin (GL_POINTS);
+          int h = 0;
+          for (; h < numEmitters; h++)
+          {
+            int i = 0;
+            for (; i < sizeof(emitters[h].particles) / sizeof(point); i++)
+            {
+              //printf("particles size at point %i is: %d\n", i, sizeof(emitters[i].particles) / sizeof(point));
+              //printf("emitters[i].particle[%i] acceleration is: %f\n", i, emitters[i].particles[i].acceleration);
+              //printf("i: %i, ID: %ix: %f y: %f\n", i, emitters[i].particles[i].ID, emitters[i].particles[i].xPosition, emitters[i].particles[i].yPosition);
+              glColor3f(emitters[h].particles[i].rColor, emitters[h].particles[i].gColor, emitters[h].particles[i].bColor);
+              glVertex3f (emitters[h].particles[i].xPosition, emitters[h].particles[i].yPosition, emitters[h].particles[i].zPosition);
+            }
+          }
+          //glVertex3f (0.0, 0.0, testPoint.yPosition);
+      glEnd ();
+      break;
+
+    case QUADS:
+      glBegin(GL_QUADS);
+      int i = 0;
+      for (; i < numEmitters; i++)
       {
-        int i = 0;
-        for (; i < sizeof(emitters[h].particles) / sizeof(point); i++)
+        int k = 0;
+        for (; k < sizeof(emitters[0].particles) / sizeof(point); k+=5)
         {
-          //printf("particles size at point %i is: %d\n", i, sizeof(emitters[i].particles) / sizeof(point));
-          //printf("emitters[i].particle[%i] acceleration is: %f\n", i, emitters[i].particles[i].acceleration);
-          //printf("i: %i, ID: %ix: %f y: %f\n", i, emitters[i].particles[i].ID, emitters[i].particles[i].xPosition, emitters[i].particles[i].yPosition);
-          glColor3f(emitters[h].particles[i].rColor, emitters[h].particles[i].gColor, emitters[h].particles[i].bColor);
-          glVertex3f (emitters[h].particles[i].xPosition, emitters[h].particles[i].yPosition, emitters[h].particles[i].zPosition);
+          glColor4f(emitters[i].particles[k].rColor, emitters[i].particles[k].gColor, emitters[i].particles[k].bColor, 0.5);
+
+          glVertex3f (emitters[i].particles[k].xPosition-10, emitters[i].particles[k].yPosition+10, emitters[i].particles[k].zPosition);
+          glVertex3f (emitters[i].particles[k].xPosition+10, emitters[i].particles[k].yPosition+10, emitters[i].particles[k].zPosition);
+          glVertex3f (emitters[i].particles[k].xPosition+10, emitters[i].particles[k].yPosition-10, emitters[i].particles[k].zPosition);
+          glVertex3f (emitters[i].particles[k].xPosition-10, emitters[i].particles[k].yPosition-10, emitters[i].particles[k].zPosition);
         }
       }
-      //glVertex3f (0.0, 0.0, testPoint.yPosition);
-  glEnd ();  
+      glEnd();
+      break;
+
+    case LINES:
+      glLineWidth(1); 
+
+      glBegin(GL_LINES);
+      int j = 0;
+      for (; j < sizeof(emitters[0].particles) / sizeof(point); j+=10)
+      {
+        glColor3f (emitters[0].particles[j].rColor, emitters[0].particles[j].gColor, emitters[0].particles[j].bColor);
+
+        glVertex3f (0, 800, 0);
+        glVertex3f (emitters[0].particles[j].xPosition, emitters[0].particles[j].yPosition, emitters[0].particles[j].zPosition);
+      }
+      glEnd();
+      break;
+  } 
 }
 
 ///////////////////////////////////////////////
@@ -318,7 +367,7 @@ void display()
   rotateView();
   drawPoint();
 
-  if (gravityModifier == 0)
+  if (gravityModifier == 0 && velocityModifier == 1)
   {
     glColor3f(100.0, 100.0, 100.0); 
     glRasterPos2f(0.0f, 0.0f);    
@@ -418,15 +467,25 @@ void initGraphics(int argc, char *argv[])
 
 ///////////////////////////////////////////////
 
-void change_gravity(int item)
+void change_physics(int item)
 { /* Callback called when the user clicks the right mouse button */
   switch (item)
   {
-    case 1:  /* Escape key */
+    case 1:
       gravityModifier += 0.5;
       break;
     case 2:
       gravityModifier -= 0.5;
+      break;
+    case 3:
+      velocityModifier += 0.2;
+      break;
+    case 4:
+      velocityModifier -= 0.2;
+      break;
+    case 5:
+      gravityModifier = 1;
+      velocityModifier = 1;
       break;
   }  
 }
@@ -454,6 +513,24 @@ void change_colour(int item)
 
 ///////////////////////////////////////////////
 
+void change_render_type(int item)
+{ /* Callback called when the user clicks the right mouse button */
+  switch (item)
+  {
+    case 1:  /* Escape key */
+      render_mode = POINTS;
+      break;
+    case 2:
+      render_mode = QUADS;
+      break;
+    case 3:
+      render_mode = LINES;
+      break;
+  }  
+}
+
+///////////////////////////////////////////////
+
 void change_simulation(int item)
 { /* Callback called when the user clicks the right mouse button */
   printf ("Change simulation: you clicked item %d\n", item);
@@ -470,9 +547,12 @@ int main(int argc, char *argv[])
   glutIdleFunc(tickEmitter); 
   //glutIdleFunc(tickPoint);
 
-  int gravity_menu = glutCreateMenu(change_gravity);
+  int physics_menu = glutCreateMenu(change_physics);
   glutAddMenuEntry("Increase gravity", 1);
   glutAddMenuEntry("Decrease gravity", 2);
+  glutAddMenuEntry("Increase particle velocity", 3);
+  glutAddMenuEntry("Decrease particle velocity", 4);
+  glutAddMenuEntry("Reset", 5);
 
   int colour_menu = glutCreateMenu(change_colour);
   glutAddMenuEntry("Rainbow", 1);
@@ -480,9 +560,16 @@ int main(int argc, char *argv[])
   glutAddMenuEntry("Blue", 3);
   glutAddMenuEntry("Green", 4);
 
+  int funky_menu = glutCreateMenu(change_render_type);
+  glutAddMenuEntry("Points", 1);
+  glutAddMenuEntry("Quads", 2);
+  glutAddMenuEntry("Lines", 3);
+
   int main_menu = glutCreateMenu(change_simulation);
-  glutAddSubMenu("Gravity", gravity_menu);
+  glutAddSubMenu("Physics", physics_menu);
   glutAddSubMenu("Particle Colour", colour_menu);
+  glutAddSubMenu("Funky render options", funky_menu);
+
 
   glutAttachMenu(GLUT_RIGHT_BUTTON);
 
