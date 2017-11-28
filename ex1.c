@@ -289,6 +289,13 @@ void display()
   rotateView();
   drawPoint();
 
+  if (gravityModifier == 0)
+  {
+    glColor3f(100.0, 100.0, 100.0); 
+    glRasterPos2f(0.0f, 0.0f);    
+    glutBitmapString(GLUT_BITMAP_HELVETICA_18, "PARTY MODE ACTIVATED");
+  }
+
 
   glutSwapBuffers();
 }
@@ -373,17 +380,17 @@ void initGraphics(int argc, char *argv[])
   
   glutKeyboardFunc(keyboard);
   glutReshapeFunc(reshape);
-  makeAxes();
+  //makeAxes();
   initialiseEmitter(100, 500, 0);
   initialiseEmitter(-100, 500, 0);
   initialiseEmitter(0, 500, 100);
   initialiseEmitter(0, 500, -100);
 }
 
-void change_simulation(int item)
-{ /* Callback called when the user clicks the right mouse button */
-  printf ("Change simulation: you clicked item %d\n", item);
+///////////////////////////////////////////////
 
+void change_gravity(int item)
+{ /* Callback called when the user clicks the right mouse button */
   switch (item)
   {
     case 1:  /* Escape key */
@@ -392,8 +399,14 @@ void change_simulation(int item)
     case 2:
       gravityModifier -= 0.5;
       break;
-  }
-  
+  }  
+}
+
+///////////////////////////////////////////////
+
+void change_simulation(int item)
+{ /* Callback called when the user clicks the right mouse button */
+  printf ("Change simulation: you clicked item %d\n", item);
 }
 /////////////////////////////////////////////////
 
@@ -407,9 +420,13 @@ int main(int argc, char *argv[])
   glutIdleFunc(tickEmitter); 
   //glutIdleFunc(tickPoint);
 
-  glutCreateMenu(change_simulation); /* Create the first menu & add items */
+  int gravity_menu = glutCreateMenu(change_gravity); /* Create the first menu & add items */
   glutAddMenuEntry("Increase gravity", 1);
   glutAddMenuEntry("Decrease gravity", 2);
+
+  int main_menu = glutCreateMenu(change_simulation);
+  glutAddSubMenu("gravity shit shit", gravity_menu);
+
   glutAttachMenu(GLUT_RIGHT_BUTTON); /* Attach it to the right button */
 
   glutMainLoop();
