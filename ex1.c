@@ -59,6 +59,14 @@ typedef struct {
   point particles[10000];
 }particleEmitter;
 
+enum colour 
+{
+  RAINBOW = 0, 
+  RED = 1, 
+  BLUE = 2,
+  GREEN = 3
+};
+
 particleEmitter emitters[10];
 int numEmitters = 0;
 
@@ -68,6 +76,7 @@ int simTime;
 int currentView;
 
 float gravityModifier = 1;
+int particles_colour = 0;
 
 ///////////////////////////////////////////////
 
@@ -136,9 +145,29 @@ void initialisePoint(int emitterID)
   testPoint.xGroundDirection = 0;
   testPoint.zGroundDirection = 0;
 
-  testPoint.rColor = myRandom();
-  testPoint.gColor = myRandom();
-  testPoint.bColor = myRandom();
+  switch (particles_colour)
+  {
+    case RAINBOW:  /* Escape key */
+      testPoint.rColor = myRandom();
+      testPoint.gColor = myRandom();
+      testPoint.bColor = myRandom();
+      break;
+    case RED:
+      testPoint.rColor = 1;
+      testPoint.gColor = 0;
+      testPoint.bColor = 0;
+      break;
+    case BLUE:
+      testPoint.rColor = 0;
+      testPoint.gColor = 0;
+      testPoint.bColor = 1;
+      break;
+    case GREEN:
+      testPoint.rColor = 0;
+      testPoint.gColor = 1;
+      testPoint.bColor = 0;
+      break;
+  }
   
   emitters[emitterID].particles[emitters[emitterID].numParticles] = testPoint;
   emitters[emitterID].numParticles += 1;
@@ -404,6 +433,27 @@ void change_gravity(int item)
 
 ///////////////////////////////////////////////
 
+void change_colour(int item)
+{ /* Callback called when the user clicks the right mouse button */
+  switch (item)
+  {
+    case 1:  /* Escape key */
+      particles_colour = RAINBOW;
+      break;
+    case 2:
+      particles_colour = RED;
+      break;
+    case 3:
+      particles_colour = BLUE;
+      break;
+    case 4:
+      particles_colour = GREEN;
+      break;
+  }  
+}
+
+///////////////////////////////////////////////
+
 void change_simulation(int item)
 { /* Callback called when the user clicks the right mouse button */
   printf ("Change simulation: you clicked item %d\n", item);
@@ -420,17 +470,26 @@ int main(int argc, char *argv[])
   glutIdleFunc(tickEmitter); 
   //glutIdleFunc(tickPoint);
 
-  int gravity_menu = glutCreateMenu(change_gravity); /* Create the first menu & add items */
+  int gravity_menu = glutCreateMenu(change_gravity);
   glutAddMenuEntry("Increase gravity", 1);
   glutAddMenuEntry("Decrease gravity", 2);
 
-  int main_menu = glutCreateMenu(change_simulation);
-  glutAddSubMenu("gravity shit shit", gravity_menu);
+  int colour_menu = glutCreateMenu(change_colour);
+  glutAddMenuEntry("Rainbow", 1);
+  glutAddMenuEntry("Red", 2);
+  glutAddMenuEntry("Blue", 3);
+  glutAddMenuEntry("Green", 4);
 
-  glutAttachMenu(GLUT_RIGHT_BUTTON); /* Attach it to the right button */
+  int main_menu = glutCreateMenu(change_simulation);
+  glutAddSubMenu("Gravity", gravity_menu);
+  glutAddSubMenu("Particle Colour", colour_menu);
+
+  glutAttachMenu(GLUT_RIGHT_BUTTON);
 
   glutMainLoop();
 }
+
+//colour and size change depending on position
 
 //move the camera around (priority)
 //get some cool shading effects on the particles
