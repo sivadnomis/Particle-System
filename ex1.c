@@ -56,7 +56,7 @@ typedef struct {
   GLfloat  zPosition;
 
   int  numParticles;
-  point particles[20000];
+  point particles[100000];
 }particleEmitter;
 
 enum colour 
@@ -86,6 +86,13 @@ float gravityModifier = 1;
 float velocityModifier = 1;
 int particles_colour = 0;
 int render_mode = 0;
+
+int num_physics_ticks = 0;
+int num_render_ticks = 0;
+double total_physics_time = 0;
+double total_render_time = 0;
+double average_physics_time = 0;
+double average_render_time = 0;
 
 ///////////////////////////////////////////////
 
@@ -121,6 +128,9 @@ void initialiseEmitter(int xPos, int yPos, int zPos)
 
 void tickEmitter(void)
 {
+  struct timeval start, end;
+  gettimeofday(&start, NULL);
+
   simTime += timeStep;
   int i = 0;
   for (; i < numEmitters; i++)
@@ -134,6 +144,23 @@ void tickEmitter(void)
     initialisePoint(i);
     tickPoint(i);
   }
+
+  gettimeofday(&end, NULL);
+  //printf ("Total physics time = %f seconds\n",
+         //(double) (end.tv_usec - start.tv_usec) / 1000000 +
+         //(double) (end.tv_sec - start.tv_sec));
+
+  num_physics_ticks++;
+  total_physics_time += (double) (end.tv_usec - start.tv_usec) / 1000000 +
+         (double) (end.tv_sec - start.tv_sec);
+
+  average_physics_time = total_physics_time / num_physics_ticks;
+  
+  if (num_physics_ticks % 500 == 0)
+  {
+    printf("Average physics time for last 500 ticks: %f\n", average_physics_time);
+    num_physics_ticks = 0;
+  }
 }
 
 void initialisePoint(int emitterID)
@@ -141,7 +168,7 @@ void initialisePoint(int emitterID)
   point testPoint;
   
   testPoint.ID = emitters[emitterID].numParticles;
-  printf("particle ID: %i\n", testPoint.ID);
+  //printf("particle ID: %i\n", testPoint.ID);
 
   testPoint.xPosition = emitters[emitterID].xPosition;
   testPoint.yPosition = emitters[emitterID].yPosition;  
@@ -189,6 +216,8 @@ float distanceFromOrigin(float xPosition, float zPosition)
 
 void tickPoint(int emitterID)
 {
+  
+
   int i = 0;
   for (; i < sizeof(emitters[emitterID].particles) / sizeof(point); i++)
   {
@@ -237,11 +266,7 @@ void tickPoint(int emitterID)
           emitters[emitterID].particles[i].zPosition -= emitters[emitterID].particles[i].zGroundDirection;
         }
       }
-
-    }
-
-
-    
+    }    
   }
 
   glutPostRedisplay();
@@ -252,6 +277,9 @@ void drawPoint()
   // enable blending
   glEnable(GL_BLEND);
   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+  struct timeval start, end;
+  gettimeofday(&start, NULL);
 
   switch (render_mode)
   {
@@ -312,6 +340,23 @@ void drawPoint()
       glEnd();
       break;
   } 
+
+  gettimeofday(&end, NULL);
+  //printf ("Total physics time = %f seconds\n",
+         //(double) (end.tv_usec - start.tv_usec) / 1000000 +
+         //(double) (end.tv_sec - start.tv_sec));
+
+  num_render_ticks++;
+  total_render_time += (double) (end.tv_usec - start.tv_usec) / 1000000 +
+         (double) (end.tv_sec - start.tv_sec);
+
+  average_render_time = total_render_time / num_render_ticks;
+  
+  if (num_render_ticks % 500 == 0)
+  {
+    printf("\nAverage render time for last 500 frames: %f\n", average_render_time);
+    num_render_ticks = 0;
+  }
 }
 
 ///////////////////////////////////////////////
@@ -570,13 +615,10 @@ int main(int argc, char *argv[])
   glutAddSubMenu("Particle Colour", colour_menu);
   glutAddSubMenu("Funky render options", funky_menu);
 
-
   glutAttachMenu(GLUT_RIGHT_BUTTON);
 
   glutMainLoop();
 }
 
 //colour and size change depending on position
-
-//move the camera around (priority)
-//get some cool shading effects on the particles
+//make particles disappear after some time
